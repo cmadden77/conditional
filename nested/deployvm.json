@@ -45,7 +45,7 @@
         "description": "ID location for Storage Account"
       }
     },
-    "network": {
+    "subnetref": {
       "type": "object",
       "metadata": {
         "description": "existing network informationt"
@@ -119,7 +119,7 @@
                 "id": "[resourceId('Microsoft.Network/publicIPAddresses',concat(variables('publicIPAddressName'),copyIndex(1)))]"
               },
               "subnet": {
-                "id": "[parameters('network').subnetRef]"
+                "id": "[parameters('subnetref')]"
               }
             }
           }
