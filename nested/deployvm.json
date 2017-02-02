@@ -45,10 +45,10 @@
         "description": "ID location for Storage Account"
       }
     },
-    "subnetref": {
-      "type": "string",
+    "network": {
+      "type": "object",
       "metadata": {
-        "description": "existing network informationt"
+        "description": "existing network information"
       }
     }
   },
@@ -66,6 +66,8 @@
     "publicIPAddressType": "Dynamic",
     "uniqueDnsNameForPublicIP": "[tolower(concat('dns-', parameters('vmname')))]",
     "vmNicName": "[tolower(concat(parameters('vmname'),'-pip'))]",
+    "vnetID": "[resourceId(parameters('network').existingVNETRGName, 'Microsoft.Network/virtualNetworks', parameters('network').existingVNETName)]",
+    "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('network').subnetId)]",
 
     "vmconfig": {
       "domaintojoin": "corp.convatec.com",
