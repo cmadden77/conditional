@@ -1,0 +1,248 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "storageaccount": {
+      "type": "string",
+      "defaultValue": "newstorageaccount",
+      "allowedValues": [
+        "newstorageaccount",
+        "existingtorageaccount"
+      ],
+      "metadata": {
+        "description": "will a new or existing storage account be used"
+      }
+    },
+    "vmname": {
+      "type": "string",
+      "metadata": {
+        "description": "Code to identify application e.g. A000"
+      }
+    },
+    "existingstorageaccount": {
+      "type": "string",
+      "metadata": {
+        "description": "name of existing storageaccount, only needed for existing storage account"
+      }
+    },
+    "AppCode": {
+      "type": "string",
+      "metadata": {
+        "description": "Code to identify application e.g. A000, only needed for new storage account"
+      }
+    },
+    "uniqueid": {
+      "type": "string",
+      "metadata": {
+        "description": "Code to identify application e.g. 2344, only needed for new storage account"
+      }
+    },
+    "storageAccountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_GRS",
+        "Standard_ZRS",
+        "Premium_LRS"
+      ],
+      "metadata": {
+        "description": "Storage Account type, only needed for new storage account"
+      }
+    }
+  },
+  "variables": {
+    "subscriptionID": "/subscriptions/91716dc0-0018-48e4-84ad-db239ee753db/resourceGroups/",
+    "Template": {
+      "BaseUrl": "https://raw.githubusercontent.com/cmadden77/nested/master/conditional/",
+      "backup": "backup.json",
+      "newstorageaccount": "newstorageaccount.json",
+      "existingstorageaccount": "existingstorageaccount.json",
+      "deployvms": "deployvm.json",
+      "encryptvhd": "encryptvhd.json",
+      "empty": "empty-resources.json",
+      "updatevm-nokek": "updatevm-nokek.json",
+      "updatevm-kek": "updatevm-kek.json",
+      "updatevm": "updatevm.json"
+    },
+    "storageHash": {
+      "newstorageaccount": "[concat(variables('Template').BaseUrl,variables('Template').newstorageaccount)]",
+      "existingtorageaccount": "[concat(variables('Template').BaseUrl,variables('Template').existingstorageaccount)]"
+    },
+    "storageaccountname": {
+      "newstorageaccount": "[tolower(concat('P0', parameters('AppCode'),'E0H1R1', parameters('uniqueid'),'sa'))]",
+      "existingstorageaccount": "[parameters('existingstorageaccount')]"
+    },
+    "storageTemplate": "[variables('storageHash')[parameters('storageaccount')]]",
+    "storagename": "[variables('storageHash')[parameters('storageaccount')]]",
+
+    "network": {
+      "subscriptionID": "/subscriptions/91716dc0-0018-48e4-84ad-db239ee753db/resourceGroups/",
+      "existingVNETRGName": "temp-RG",
+      "existingVNETName": "MGMTVNET",
+      "subnetId": "MGMTSubnet",
+      "vnetID": "[resourceId(variables('network').existingVNETRGName, 'Microsoft.Network/virtualNetworks', variables('network').existingVNETName)]",
+      "subnetRef": "[concat(variables('network').vnetId, '/subnets/', variables('network').subnetId)]"
+    },
+
+    "keyvault": {
+      "existingKVRGName": "Restricted-Prod-EU2-RG",
+      "existingKVName": "Deployment-Prod-EU2-KV",
+      "LocalPasswordSecret": "Temp-Localadminpassword",
+      "DomainJoinPasswordSecret": "Temp-DomainJoinPassword",
+      "OMSPrimarySecret": "ConvaTecOMSPrimaryKey",
+      "OMSWorkspace": "ConvaTectOMSWorkSpace",
+      "aadClientSecret": "aadClientSecret",
+      "keyVaultResourceID": "[concat(subscription().id,'/resourceGroups/',variables('keyvault').existingKVRGName,'/providers/Microsoft.KeyVault/vaults/', variables('keyvault').existingKVName)]"
+    },
+
+    "Encryption": {
+      "useExistingKek": "nokek",
+      "keyEncryptionKeyURL": "",
+      "volumeType": "All",
+      "sequenceVersion": "1.0",
+      "extensionName": "AzureDiskEncryption",
+      "aadclientid": "1ef10016-ebdb-4591-a8ca-597a615b9e6e"
+    },
+    "apiVersion": "2015-01-01"
+  },
+  "resources": [
+    {
+      "name": "DeployStorageAccount",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "[variables('apiVersion')]",
+      "dependsOn": [
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('storageTemplate')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "storageaccountname": {
+            "value": "[variables('storagename')]"
+          },
+          "StorageAccountType": {
+            "value": "[parameters('storageAccountType')]"
+          }
+        }
+
+      }
+    },
+    {
+      "name": "DeployVM",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "[variables('apiVersion')]",
+      "dependsOn": [
+        "[concat('Microsoft.Resources/deployments/', 'DeployStorageAccount')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('Template').BaseUrl, variables('Template').deployvms)]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "vmname": {
+            "value": "[parameters('vmname')]"
+          },
+          "StorageAccount": {
+            "value": "[variables('storagename')]"
+          },
+          "network": {
+            "value": "[variables('network')]"
+          },
+          "adminPassword": {
+            "reference": {
+              "keyVault": {
+                "id": "[concat(variables('subscriptionID'),variables('keyvault').existingKVRGName, '/providers/Microsoft.KeyVault/vaults/', variables('keyvault').existingKVName)]"
+              },
+              "secretName": "[variables('keyvault').LocalPasswordSecret]"
+            }
+          },
+          "DomainPassword": {
+            "reference": {
+              "keyVault": {
+                "id": "[concat(variables('subscriptionID'),variables('keyvault').existingKVRGName, '/providers/Microsoft.KeyVault/vaults/', variables('keyvault').existingKVName)]"
+              },
+              "secretName": "[variables('keyvault').DomainJoinPasswordSecret]"
+            }
+          },
+          "workspaceId": {
+            "reference": {
+              "keyVault": {
+                "id": "[concat(variables('subscriptionID'),variables('keyvault').existingKVRGName, '/providers/Microsoft.KeyVault/vaults/', variables('keyvault').existingKVName)]"
+              },
+              "secretName": "[variables('keyvault').OMSWorkspace]"
+            }
+          },
+          "workspaceKey": {
+            "reference": {
+              "keyVault": {
+                "id": "[concat(variables('subscriptionID'),variables('keyvault').existingKVRGName, '/providers/Microsoft.KeyVault/vaults/', variables('keyvault').existingKVName)]"
+              },
+              "secretName": "[variables('keyvault').OMSPrimarySecret]"
+            }
+          },
+          "aadClientSecret": {
+            "reference": {
+              "keyVault": {
+                "id": "[concat(variables('subscriptionID'),variables('keyvault').existingKVRGName, '/providers/Microsoft.KeyVault/vaults/', variables('keyvault').existingKVName)]"
+              },
+              "secretName": "[variables('keyvault').aadClientSecret]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "DeployBackup",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "[variables('apiVersion')]",
+      "dependsOn": [
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('Template').BaseUrl, variables('Template').empty)]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "storageaccountname": {
+            "value": "[variables('storagename')]"
+          },
+          "StorageAccountType": {
+            "value": "[parameters('storageAccountType')]"
+          }
+        }
+
+      }
+    },
+    {
+      "name": "DeployEncryption",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "[variables('apiVersion')]",
+      "dependsOn": [
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('Template').BaseUrl, variables('Template').empty)]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "storageaccountname": {
+            "value": "[variables('storagename')]"
+          },
+          "StorageAccountType": {
+            "value": "[parameters('storageAccountType')]"
+          }
+        }
+
+      }
+    }
+
+  ],
+    "outputs": { }
+  }
