@@ -80,11 +80,11 @@
       "DomainJoinPasswordSecret": "Temp-DomainJoinPassword",
       "OMSPrimarySecret": "ConvaTecOMSPrimaryKey",
       "OMSWorkspace": "ConvaTectOMSWorkSpace",
-      "aadClientSecret": "aadClientSecret",
-      "keyVaultURL": "[concat('https://', variables('keyvault').existingKVName, '.vault.azure.net/')]",
-      "keyVaultResourceID": "[concat(subscription().id,'/resourceGroups/',variables('keyvault').existingKVRGName,'/providers/Microsoft.KeyVault/vaults/', variables('keyvault').existingKVName)]"
-
+      "aadClientSecret": "aadClientSecret"
     },
+    "keyVaultURL": "[concat('https://', variables('keyvault').existingKVName, '.vault.azure.net/')]",
+    "keyVaultResourceID": "[concat(subscription().id,'/resourceGroups/',variables('keyvault').existingKVRGName,'/providers/Microsoft.KeyVault/vaults/', variables('keyvault').existingKVName)]",
+
     "apiVersion": "2015-06-15"
   },
   "resources": [
