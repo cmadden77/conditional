@@ -188,8 +188,7 @@
           "name": "[concat(parameters('vmName'),'/dscExtension')]",
           "location": "[variables('location')]",
           "dependsOn": [
-            "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'))]",
-            "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'),'/extensions/','joindomain')]"
+            "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'))]"
           ],
           "properties": {
             "publisher": "Microsoft.Powershell",
