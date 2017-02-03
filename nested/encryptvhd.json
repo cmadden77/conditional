@@ -9,7 +9,7 @@
       }
     },
     "keyvault": {
-      "type": "string",
+      "type": "object",
       "metadata": {
         "description": "keyvault data"
       }
@@ -21,13 +21,13 @@
       }
     },
     "Encryption": {
-      "type": "string",
+      "type": "object",
       "metadata": {
         "description": "Encryption data"
       }
     },
     "Template": {
-      "type": "string",
+      "type": "object",
       "metadata": {
         "description": "Template Data"
       }
