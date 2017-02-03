@@ -5,7 +5,7 @@
     "vmname": {
       "type": "string",
       "metadata": {
-        "description": "pname for virtual machine"
+        "description": "name for virtual machine"
       }
     },
     "domainpassword": {
