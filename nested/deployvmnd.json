@@ -1,0 +1,269 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vmname": {
+      "type": "string",
+      "metadata": {
+        "description": "pname for virtual machine"
+      }
+    },
+    "domainpassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "password for domain and for domain admin."
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "password for domain and forlocal admin."
+      }
+    },
+    "workspaceId": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Workspace ID for OMS."
+      }
+    },
+    "workspaceKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Workspace Key for OMS."
+      }
+    },
+    "existingRG": {
+      "type": "string",
+      "defaultValue": "temp-RG",
+      "metadata": {
+        "description": "existing RG for network."
+      }
+    },
+    "StorageAccount": {
+      "type": "string",
+      "metadata": {
+        "description": "ID location for Storage Account"
+      }
+    },
+    "network": {
+      "type": "object",
+      "metadata": {
+        "description": "existing network information"
+      }
+    }
+  },
+  "variables": {
+    "OSSettings": {
+      "imagePublisher": "MicrosoftWindowsServer",
+      "imageOffer": "WindowsServer",
+      "vmOsSku": "2012-R2-Datacenter",
+      "vmAdminUsername": "adadministrator",
+      "vmSize": "Standard_D1",
+      "vmDataDiskSize": "300"
+    },
+    "location": "[resourceGroup().location]",
+    "publicIPAddressName": "[tolower(concat(parameters('vmname'),'-pip'))]",
+    "publicIPAddressType": "Dynamic",
+    "uniqueDnsNameForPublicIP": "[tolower(concat('dns-', parameters('vmname')))]",
+    "vmNicName": "[tolower(concat(parameters('vmname'),'-pip'))]",
+    "vnetID": "[resourceId(parameters('network').existingVNETRGName, 'Microsoft.Network/virtualNetworks', parameters('network').existingVNETName)]",
+    "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('network').subnetId)]",
+
+    "vmconfig": {
+      "domaintojoin": "corp.convatec.com",
+      "configurationFunction": "iiswebsite.ps1\\iiswebsite",
+      "modulesUrl": "https://github.com/cmadden77/IFWeek2017/raw/master/iiswebsite.zip"
+    },
+    "keyvault": {
+      "subscriptionID": "/subscriptions/91716dc0-0018-48e4-84ad-db239ee753db/resourceGroups/",
+      "existingKVRGName": "Restricted-Prod-EU2-RG",
+      "existingKVName": "Deployment-Prod-EU2-KV",
+      "LocalPasswordSecret": "Temp-Localadminpassword",
+      "DomainJoinPasswordSecret": "Temp-DomainJoinPassword",
+      "OMSPrimarySecret": "ConvaTecOMSPrimaryKey",
+      "OMSWorkspace": "ConvaTectOMSWorkSpace",
+      "aadClientSecret": "aadClientSecret"
+    },
+    "keyVaultURL": "[concat('https://', variables('keyvault').existingKVName, '.vault.azure.net/')]",
+    "keyVaultResourceID": "[concat(subscription().id,'/resourceGroups/',variables('keyvault').existingKVRGName,'/providers/Microsoft.KeyVault/vaults/', variables('keyvault').existingKVName)]",
+
+    "apiVersion": "2015-06-15"
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIPAddressName')]",
+      "location": "[variables('location')]",
+      "properties": {
+        "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+        "dnsSettings": {
+          "domainNameLabel": "[variables('uniqueDnsNameForPublicIP')]"
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[variables('vmNicName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/',variables('publicIPAddressName'))]"
+
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfigpublic",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',concat(variables('publicIPAddressName')))]"
+              },
+              "subnet": {
+                "id": "[variables('subnetref')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[parameters('vmName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/',variables('vmNicName'))]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('OSSettings').vmSize]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('vmName')]",
+          "adminUsername": "[variables('OSSettings').vmAdminUsername]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('OSSettings').imagePublisher]",
+            "offer": "[variables('OSSettings').imageOffer]",
+            "sku": "[variables('OSSettings').vmOsSku]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('StorageAccount')),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob,'vhds/',parameters('vmname'),'-OSdisk.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          },
+          "dataDisks": [
+            {
+              "vhd": {
+                "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('StorageAccount')),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob,'vhds/',parameters('vmname'),'-Datadisk-0.vhd')]"
+              },
+              "name": "[concat(parameters('vmname'),'Datadisk-0')]",
+              "createOption": "Empty",
+              "caching": "None",
+              "diskSizeGB": "[variables('OSSettings').vmDataDiskSize]",
+              "lun": 0
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(variables('vmNicName')))]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "apiVersion": "2015-06-15",
+          "type": "Microsoft.Compute/virtualMachines/extensions",
+          "name": "[concat(parameters('vmName'),'/dscExtension')]",
+          "location": "[variables('location')]",
+          "dependsOn": [
+            "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'))]",
+            "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'),'/extensions/','joindomain')]"
+          ],
+          "properties": {
+            "publisher": "Microsoft.Powershell",
+            "type": "DSC",
+            "typeHandlerVersion": "2.15",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "ModulesUrl": "[variables('vmconfig').modulesUrl]",
+              "ConfigurationFunction": "[variables('vmconfig').configurationFunction]",
+              "properties": {
+                "MachineName": "localhost"
+              },
+              "Location": "[variables('location')]"
+            }
+          }
+        },
+        {
+          "type": "Microsoft.Compute/virtualMachines/extensions",
+          "name": "[concat(parameters('vmName'),'/','Antimalware')]",
+          "apiVersion": "2015-05-01-preview",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'))]",
+            "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'),'/extensions/','dscExtension')]"
+          ],
+          "properties": {
+            "publisher": "Microsoft.Azure.Security",
+            "type": "IaaSAntimalware",
+            "typeHandlerVersion": "1.1",
+            "settings": {
+              "AntimalwareEnabled": "true",
+              "Exclusions": {
+                "Paths": "f:\\sysvol\\;f:\\ntds\\;",
+                "Extensions": ".mdf;.ldf;.ndf;.bak;.trn;.edb;.sdb;.chk;.jrs;.pol;.dit",
+                "Processes": "sqlserver.exe;ReportingServicesService.exe;MSMDSrv.exe"
+              },
+              "RealtimeProtectionEnabled": "true",
+              "ScheduledScanSettings": {
+                "isEnabled": "true",
+                "scanType": "Quick",
+                "day": "7",
+                "time": "120"
+              }
+            },
+            "protectedSettings": null
+          }
+        },
+        {
+          "type": "Microsoft.Compute/virtualMachines/extensions",
+          "name": "[concat(parameters('vmName'), '/Microsoft.EnterpriseCloud.Monitoring')]",
+          "apiVersion": "2015-06-15",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'))]",
+            "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'),'/extensions/','Antimalware')]"
+          ],
+          "properties": {
+            "publisher": "Microsoft.EnterpriseCloud.Monitoring",
+            "type": "MicrosoftMonitoringAgent",
+            "typeHandlerVersion": "1.0",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "workspaceId": "[parameters('workspaceId')]"
+            },
+            "protectedSettings": {
+              "workspaceKey": "[parameters('workspaceKey')]"
+            }
+          }
+        }
+
+
+      ]
+    }
+
+  ],
+  "outputs": { }
+}
