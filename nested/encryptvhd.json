@@ -15,7 +15,7 @@
       }
     },
     "keyVaultResourceID": {
-      "type": "securestring",
+      "type": "string",
       "metadata": {
         "description": "KeyVault resource ID"
       }
