@@ -155,7 +155,7 @@
           ]
         }
       },
-      "resources": [        
+      "resources": [
         {
           "type": "Microsoft.Compute/virtualMachines/extensions",
           "name": "[concat(parameters('vmName'),'/','Antimalware')]",
@@ -266,24 +266,25 @@
       }
     },
     {
-      "name": "[variables('vmNicName')]",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkInterfaces",
-      "apiVersion": "2016-09-01",
+      "name": "[variables('vmNicName')]",
       "location": "[variables('location')]",
       "dependsOn": [
-        "[concat('Microsoft.Network/publicIpAddresses/', variables('publicIpAddressName'))]"
+        "[concat('Microsoft.Network/publicIPAddresses/',variables('publicIPAddressName'))]"
+
       ],
       "properties": {
         "ipConfigurations": [
           {
-            "name": "ipconfig1",
+            "name": "ipconfigpublic",
             "properties": {
-              "subnet": {
-                "id": "[variables('subnetRef')]"
-              },
               "privateIPAllocationMethod": "Dynamic",
-              "publicIpAddress": {
-                "id": "[resourceId('tempsql1','Microsoft.Network/publicIpAddresses', variables('publicIpAddressName'))]"
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses',concat(variables('publicIPAddressName')))]"
+              },
+              "subnet": {
+                "id": "[variables('subnetref')]"
               }
             }
           }
@@ -291,12 +292,12 @@
       }
     },
     {
-      "name": "[variables('publicIpAddressName')]",
-      "type": "Microsoft.Network/publicIpAddresses",
-      "apiVersion": "2016-09-01",
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIPAddressName')]",
       "location": "[variables('location')]",
       "properties": {
-        "publicIpAllocationMethod": "[variables('publicIpAddressType')]"
+        "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
       }
     }
   ],
