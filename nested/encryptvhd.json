@@ -46,7 +46,7 @@
   },
   "variables": {
 
-    "updateVmUrl": "[concat(parameters('Template').BaseUrl,parameters('useExistingKek'))]",
+    "updateVmUrl": "[concat(parameters('Template').BaseUrl,'updatevm-',parameters('useExistingKek'))]",
     "keyVaultURL": "[concat('https://', parameters('keyVault').existingKVRGName, '.vault.azure.net/')]",
 
     },
