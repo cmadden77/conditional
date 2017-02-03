@@ -42,6 +42,12 @@
       "metadata": {
         "description": "Select kek if the secret should be encrypted with a key encryption key and pass explicit keyEncryptionKeyURL. For nokek, you can keep keyEncryptionKeyURL empty."
       }
+    },
+    "aadClientSecret": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Client Secret of AAD app which has permissions to KeyVault"
+      }
     }
   },
   "variables": {
@@ -71,7 +77,7 @@
           "EncryptionOperation": "[parameters('Encryption').encryptionOperation]"
         },
         "protectedSettings": {
-          "AADClientSecret": "[parameters('keyVaultResourceID').aadClientSecret]"
+          "AADClientSecret": "[parameters('aadClientSecret')]"
         }
       }
     },
