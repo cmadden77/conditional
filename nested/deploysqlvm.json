@@ -187,7 +187,7 @@
           "location": "[resourceGroup().location]",
           "dependsOn": [
             "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'))]",
-            "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'),'/extensions/','dscExtension')]"
+            "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'),'/extensions/','joindomain')]"
           ],
           "properties": {
             "publisher": "Microsoft.Azure.Security",
