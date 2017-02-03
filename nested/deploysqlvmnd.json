@@ -218,7 +218,8 @@
       "name": "[concat(parameters('vmname'), '/SqlIaasExtension')]",
       "location": "[variables('location')]",
       "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', parameters('vmname'))]"
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('vmname'))]",
+        "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'),'/extensions/','Microsoft.EnterpriseCloud.Monitoring')]"
       ],
       "properties": {
         "type": "SqlIaaSAgent",
