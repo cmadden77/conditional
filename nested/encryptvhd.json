@@ -47,9 +47,9 @@
   "variables": {
 
     "updateVmUrl": "[concat(parameters('Template').BaseUrl,'updatevm-',parameters('useExistingKek'))]",
-    "keyVaultURL": "[concat('https://', parameters('keyVault').existingKVRGName, '.vault.azure.net/')]"
+    "keyVaultURL": "[concat('https://', parameters('keyVault').existingKVName, '.vault.azure.net/')]"
 
-    },
+  },
   "resources": [
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",

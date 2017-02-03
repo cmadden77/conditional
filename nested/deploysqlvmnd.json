@@ -156,30 +156,8 @@
         }
       },
       "resources": [
-        {
-          "apiVersion": "[variables('apiVersion')]",
-          "type": "Microsoft.Compute/virtualMachines/extensions",
-          "name": "[concat(parameters('vmName'),'/joindomain')]",
-          "location": "[resourceGroup().location]",
-          "dependsOn": [
-            "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'))]"
-          ],
-          "properties": {
-            "protectedsettings": {
-              "Password": "[parameters('domainPassword')]"
-            },
-            "publisher": "Microsoft.Compute",
-            "settings": {
-              "Name": "[variables('vmconfig').domainToJoin]",
-              "User": "[concat(variables('vmconfig').domainToJoin,'\\', variables('OSSettings').vmAdminUsername)]",
-              "Restart": "true",
-              "Options": 3
-            },
-            "type": "JsonADDomainExtension",
-            "typeHandlerVersion": "1.0"
-          }
-        },
-        
+        ,
+
         {
           "type": "Microsoft.Compute/virtualMachines/extensions",
           "name": "[concat(parameters('vmName'),'/','Antimalware')]",

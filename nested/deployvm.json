@@ -64,8 +64,8 @@
     "location": "[resourceGroup().location]",
     "publicIPAddressName": "[tolower(concat(parameters('vmname'),'-pip'))]",
     "publicIPAddressType": "Dynamic",
-    "uniqueDnsNameForPublicIP": "[tolower(concat('dns-', parameters('vmname')))]",
-    "vmNicName": "[tolower(concat(parameters('vmname'),'-pip'))]",
+    "uniqueDnsNameForPublicIP": "[tolower(concat(parameters('vmname'),'-pip'))]",
+    "vmNicName": "[tolower(concat(parameters('vmname'),'-nic'))]",
     "vnetID": "[resourceId(parameters('network').existingVNETRGName, 'Microsoft.Network/virtualNetworks', parameters('network').existingVNETName)]",
     "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('network').subnetId)]",
 
@@ -153,7 +153,7 @@
             "version": "latest"
           },
           "osDisk": {
-            "name": "[concat(parameters('vmname'),'osdisk']",
+            "name": "[concat(parameters('vmname'),'OSDisk')]",
             "vhd": {
               "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('StorageAccount')),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob,'vhds/',parameters('vmname'),'-OSdisk.vhd')]"
             },
