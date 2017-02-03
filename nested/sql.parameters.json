@@ -1,0 +1,84 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "westeurope"
+    },
+    "virtualMachineName": {
+      "value": "tempsql1"
+    },
+    "virtualMachineSize": {
+      "value": "Standard_DS2_v2"
+    },
+    "adminUsername": {
+      "value": "adadministrator"
+    },
+    "storageAccountName": {
+      "value": "tempsql1disks271"
+    },
+    "virtualNetworkName": {
+      "value": "MGMTVNET"
+    },
+    "networkInterfaceName": {
+      "value": "tempsql1874"
+    },
+    "networkSecurityGroupName": {
+      "value": "tempsql1-nsg"
+    },
+    "adminPassword": {
+      "value": null
+    },
+    "storageAccountType": {
+      "value": "Standard_LRS"
+    },
+    "subnetName": {
+      "value": "MGMTSubnet"
+    },
+    "publicIpAddressName": {
+      "value": "tempsql1-ip"
+    },
+    "publicIpAddressType": {
+      "value": "Dynamic"
+    },
+    "sqlConnectivityType": {
+      "value": "Private"
+    },
+    "sqlPortNumber": {
+      "value": 1433
+    },
+    "sqlStorageDisksCount": {
+      "value": 1
+    },
+    "sqlStorageWorkloadType": {
+      "value": "GENERAL"
+    },
+    "sqlStorageDisksConfigurationType": {
+      "value": "NEW"
+    },
+    "sqlStorageStartingDeviceId": {
+      "value": 2
+    },
+    "sqlStorageDeploymentToken": {
+      "value": 36719
+    },
+    "sqlAutopatchingDayOfWeek": {
+      "value": "Sunday"
+    },
+    "sqlAutopatchingStartHour": {
+      "value": "2"
+    },
+    "sqlAutopatchingWindowDuration": {
+      "value": "60"
+    },
+    "sqlAuthenticationLogin": {
+      "value": "adadministrator"
+    },
+    "sqlAuthenticationPassword": {
+      "value": null
+    },
+    "rServicesEnabled": {
+      "value": "false"
+    }
+  }
+}

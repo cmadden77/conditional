@@ -1,0 +1,245 @@
+﻿{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "vmname": {
+      "type": "string"
+    },
+    "domainpassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "password for domain and for domain admin."
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "password for domain and forlocal admin."
+      }
+    },
+    "workspaceId": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Workspace ID for OMS."
+      }
+    },
+    "workspaceKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Workspace Key for OMS."
+      }
+    },
+    "existingRG": {
+      "type": "string",
+      "defaultValue": "temp-RG",
+      "metadata": {
+        "description": "existing RG for network."
+      }
+    },
+    "StorageAccount": {
+      "type": "string",
+      "metadata": {
+        "description": "ID location for Storage Account"
+      }
+    },
+    "network": {
+      "type": "object",
+      "metadata": {
+        "description": "existing network information"
+      }
+    }
+  },
+  "variables": {
+    "OSSettings": {
+      "imagePublisher": "MicrosoftSQLServer",
+      "imageOffer": "SQL2014SP2-WS2012R2-BYOL",
+      "vmOsSku": "Enterprise",
+      "vmAdminUsername": "adadministrator",
+      "vmSize": "Standard_D2",
+      "vmDataDiskSize": "300"
+    },
+    "location": "[resourceGroup().location]",
+    "publicIPAddressName": "[tolower(concat(parameters('vmname'),'-pip'))]",
+    "publicIPAddressType": "Dynamic",
+    "uniqueDnsNameForPublicIP": "[tolower(concat('dns-', parameters('vmname')))]",
+    "vmNicName": "[tolower(concat(parameters('vmname'),'-pip'))]",
+    "vnetID": "[resourceId(parameters('network').existingVNETRGName, 'Microsoft.Network/virtualNetworks', parameters('network').existingVNETName)]",
+    "subnetRef": "[concat(variables('vnetId'), '/subnets/', parameters('network').subnetId)]",
+
+    "vmconfig": {
+      "domaintojoin": "corp.convatec.com",
+      "configurationFunction": "iiswebsite.ps1\\iiswebsite",
+      "modulesUrl": "https://github.com/cmadden77/IFWeek2017/raw/master/iiswebsite.zip"
+    },
+    "keyvault": {
+      "subscriptionID": "/subscriptions/91716dc0-0018-48e4-84ad-db239ee753db/resourceGroups/",
+      "existingKVRGName": "Restricted-Prod-EU2-RG",
+      "existingKVName": "Deployment-Prod-EU2-KV",
+      "LocalPasswordSecret": "Temp-Localadminpassword",
+      "DomainJoinPasswordSecret": "Temp-DomainJoinPassword",
+      "OMSPrimarySecret": "ConvaTecOMSPrimaryKey",
+      "OMSWorkspace": "ConvaTectOMSWorkSpace",
+      "aadClientSecret": "aadClientSecret"
+    },
+    "keyVaultURL": "[concat('https://', variables('keyvault').existingKVName, '.vault.azure.net/')]",
+    "keyVaultResourceID": "[concat(subscription().id,'/resourceGroups/',variables('keyvault').existingKVRGName,'/providers/Microsoft.KeyVault/vaults/', variables('keyvault').existingKVName)]",
+
+    "apiVersion": "2015-06-15"
+  },
+  "resources": [
+    {
+      "name": "[parameters('vmname')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2016-03-30",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', parameters('networkInterfaceName'))]"
+      ],
+      "properties": {
+        "osProfile": {
+          "computerName": "[parameters('vmname')]",
+          "adminUsername": "[variables('OSSettings').vmAdminUsername]",
+          "adminPassword": "[parameters('adminPassword')]",
+          "windowsConfiguration": {
+            "provisionVmAgent": "true"
+          }
+        },
+        "hardwareProfile": {
+          "vmSize": "[variables('OSSettings').vmSize]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "MicrosoftSQLServer",
+            "offer": "SQL2014SP2-WS2012R2-BYOL",
+            "sku": "Enterprise",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "OSDisk",
+            "createOption": "fromImage",
+            "vhd": {
+              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('StorageAccount')),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob,'vhds/',parameters('vmname'),'-OSdisk.vhd')]"
+            }
+          },
+          "dataDisks": [
+            {
+              "name": "[concat(parameters('virtualMachineName'), '-disk-1')]",
+              "createOption": "empty",
+              "lun": 0,
+              "diskSizeGB": "1023",
+              "caching": "ReadOnly",
+              "vhd": {
+                "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('StorageAccount')),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob,'vhds/',parameters('vmname'),'-Datadisk-0.vhd')]"
+              }
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('networkInterfaceName'))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-06-15",
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('virtualMachineName'), '/SqlIaasExtension')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('virtualMachineName'))]",
+        "[concat('Microsoft.Compute/virtualMachines/', parameters('virtualMachineName'))]"
+      ],
+      "properties": {
+        "type": "SqlIaaSAgent",
+        "publisher": "Microsoft.SqlServer.Management",
+        "typeHandlerVersion": "1.2",
+        "autoUpgradeMinorVersion": "true",
+        "settings": {
+          "AutoTelemetrySettings": {
+            "Region": "[parameters('location')]"
+          },
+          "AutoPatchingSettings": {
+            "PatchCategory": "WindowsMandatoryUpdates",
+            "Enable": true,
+            "DayOfWeek": "[parameters('sqlAutopatchingDayOfWeek')]",
+            "MaintenanceWindowStartingHour": "[parameters('sqlAutopatchingStartHour')]",
+            "MaintenanceWindowDuration": "[parameters('sqlAutopatchingWindowDuration')]"
+          },
+          "KeyVaultCredentialSettings": {
+            "Enable": false,
+            "CredentialName": ""
+          },
+          "ServerConfigurationsManagementSettings": {
+            "SQLConnectivityUpdateSettings": {
+              "ConnectivityType": "[parameters('sqlConnectivityType')]",
+              "Port": "[parameters('sqlPortNumber')]"
+            },
+            "SQLWorkloadTypeUpdateSettings": {
+              "SQLWorkloadType": "[parameters('sqlStorageWorkloadType')]"
+            },
+            "SQLStorageUpdateSettings": {
+              "DiskCount": "[parameters('sqlStorageDisksCount')]",
+              "NumberOfColumns": "[parameters('sqlStorageDisksCount')]",
+              "StartingDeviceID": "[parameters('sqlStorageStartingDeviceId')]",
+              "DiskConfigurationType": "[parameters('sqlStorageDisksConfigurationType')]"
+            },
+            "AdditionalFeaturesServerConfigurations": {
+              "IsRServicesEnabled": "[parameters('rServicesEnabled')]"
+            }
+          }
+        },
+        "protectedSettings": {
+          "SQLAuthUpdateUserName": "[parameters('sqlAuthenticationLogin')]",
+          "SQLAuthUpdatePassword": "[parameters('sqlAuthenticationPassword')]"
+        }
+      }
+    },
+    {
+      "name": "[parameters('networkInterfaceName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2016-09-01",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIpAddresses/', parameters('publicIpAddressName'))]",
+        "[concat('Microsoft.Network/networkSecurityGroups/', parameters('networkSecurityGroupName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[variables('subnetRef')]"
+              },
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIpAddress": {
+                "id": "[resourceId('tempsql1','Microsoft.Network/publicIpAddresses', parameters('publicIpAddressName'))]"
+              }
+            }
+          }
+        ],
+        "networkSecurityGroup": {
+          "id": "[resourceId('tempsql1', 'Microsoft.Network/networkSecurityGroups', parameters('networkSecurityGroupName'))]"
+        }
+      }
+    },
+    {
+      "name": "[parameters('publicIpAddressName')]",
+      "type": "Microsoft.Network/publicIpAddresses",
+      "apiVersion": "2016-09-01",
+      "location": "[parameters('location')]",
+      "properties": {
+        "publicIpAllocationMethod": "[parameters('publicIpAddressType')]"
+      }
+    }
+  ],
+  "outputs": {
+    "adminUsername": {
+      "type": "string",
+      "value": "[parameters('adminUsername')]"
+    }
+  }
+}
