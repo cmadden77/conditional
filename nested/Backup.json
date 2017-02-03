@@ -1,3 +1,60 @@
 ﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "existingRecoveryServicesVaultName": {
+      "type": "string",
+      "defaultValue": "General-Prod-EU2-RV",
+      "metadata": {
+        "description": "Name of the Existing Recovery Services Vault (Vault and VM to be protected must be in same GEO)"
+      }
+    },
+    "vmname": {
+      "type": "string",
+      "defaultValue": "azeu2testvm001",
+      "metadata": {
+        "description": "name of vm to be protected"
+      }
+    },
+    "existingSourceResourceIds": {
+      "type": "string",
+      "defaultValue": "/subscriptions/91716dc0-0018-48e4-84ad-db239ee753db/resourceGroups/Restricted-Prod-EU2-RG/providers/Microsoft.Compute/virtualMachines/azeu2testvm001",
+      "metadata": {
+        "description": "Array of resourceid of iaasvm protectable items. Provide resourceids of each VMs for which you want to configure protection. e.g. /subscriptions/subscriptionid/resourceGroups/resourceGroupName/providers/Microsoft.Compute/virtualMachines/vmName"
+      }
+    },
+    "existingBackupPolicyName": {
+      "type": "string",
+      "defaultValue": "DefaultPolicy",
+      "metadata": {
+        "description": "Name of existing Backup Policy in same Recovery Services Vault."
+      }
+    }
+  },
+  "variables": {
+    "backupFabric": "Azure",
+    "protectedItemType": "Microsoft.Compute/virtualMachines",
+    "protectionContainers": "[concat('iaasvmcontainer;iaasvmcontainerv2;',resourcegroup().name,parameters('vmname'))]",
+    "protectedItems": "[concat('vm;iaasvmcontainerv2;',resourcegroup().name,parameters('vmname'))]",
+    "recoveryvaultRGName": "Restricted-Prod-EU2-RG",
+    "protectionname": "[concat(parameters('existingRecoveryServicesVaultName'), '/', variables('backupFabric'), '/', parameters('vmname'), '-protection/', variables('protectedItems'))]",
+    "protectionid": "[resourceId(variables('recoveryvaultRGName'),'/providers/Microsoft.RecoveryServices/vaults/General-Prod-EU2-RV/backupFabrics/Azure/protectionContainers')]",
 
+
+  },
+
+  "resources": [
+    {
+      "id": "[concat(variables('protectionid'),variables('protectionname'))]",
+      "name": "[concat('Microsoft.RecoveryServices/vaults/',parameters('existingRecoveryServicesVaultName'), '/', variables('backupFabric'), '/', parameters('vmname'), '-protection/', variables('protectedItems'))]",
+      "apiVersion": "2016-06-01",
+      "location": "[resourceGroup().location]",
+      "type": "Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems",
+      "properties": {
+        "protectedItemType": "[variables('protectedItemType')]",
+        "policyId": "[resourceId(variables('recoveryvaultRGName'),'Microsoft.RecoveryServices/vaults/backupPolicies', parameters('existingRecoveryServicesVaultName'), parameters('existingBackupPolicyName'))]",
+        "sourceResourceId": "[parameters('existingSourceResourceIds')]"
+      }
+    }
+  ]
 }
